@@ -10,7 +10,6 @@ class Model extends BaseModel {
         return this
     }
     metaData(includeMeta) {
-        console.log({includeMeta})
         if(includeMeta) {
             this._created = true
             this._model = this.constructor.name
@@ -45,7 +44,6 @@ class Model extends BaseModel {
     }
     static get visibleFields() {
         let {fields, visible, hidden} = this
-        console.log({fields, visible, hidden})
 
         visible = visible.length ? visible : fields.map(field => field.name)
         let fieldsArray = visible.filter(field => ! hidden.includes(field))
@@ -67,8 +65,6 @@ class Model extends BaseModel {
         //     if (fillable.includes(field)) params[field] = this[field]
         // })
         fillable.forEach(field => params[field] = this[field] )
-        console.log('##################')
-        console.log(params)
         return params
     }
     static get parameterizedFields() {
@@ -91,7 +87,6 @@ class Model extends BaseModel {
 
     static get select() {
         let sqlSelect = 'SELECT ' + this.visibleFields
-        console.log({sqlSelect})
         return sqlSelect
     }
     get qInsert() {
@@ -127,7 +122,6 @@ class Model extends BaseModel {
     }
     //need to reconcile these two
     static _getAll(field = '', params, pull = 'all', opts = {}) {
-        console.log('field', field.constructor)
         if (field.constructor === Object) {
             opts = field
             field = ''
@@ -176,7 +170,7 @@ class Model extends BaseModel {
         let params = this.fillableParams
         let sql = this.qInsert + this._.fillableInsertQuery
         let {changes, lastInsertRowid} = DB.run(sql, params)
-        return this.get(lastInsertRowid)
+        return this._.get(lastInsertRowid)
     }
 
     update() {
