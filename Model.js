@@ -126,16 +126,24 @@ class Model extends BaseModel {
         return DB.all(sql)
     }
     //need to reconcile these two
-    static _getAll(field, params, pull = 'all') {
+    static _getAll(field = '', params, pull = 'all', opts = {}) {
+        console.log('field', field.constructor)
+        if (field.constructor === Object) {
+            opts = field
+            field = ''
+        }
+
         let sql = this.query
+        sql += (this.useSoftDeletes && ! opts.withDeleted) ? ' AND is_deleted IS NULL' : ''
+
         if (field) {
             sql += ' AND ' + field + ' = ?' 
         }
         return DB[pull](sql, params)
     }
-    static getAll(opts) {
+    static getAll() {
         let results = this._getAll(...arguments)
-        return results.map(result => new this({...result, opts}))
+        return results.map(result => new this({...result}))
     }
 
     static _getWhere(field, param) {
@@ -148,6 +156,7 @@ class Model extends BaseModel {
     static _get(id) {
         return this._getWhere('id', id)
     }
+
     static get() {
         return new this(this._get(...arguments))
     }
@@ -181,17 +190,18 @@ class Model extends BaseModel {
         return this
     }
     static delete(id) {
-        let instance = new this(this.id(id))
-        return instance.delete(...arguments)
+        let instance = this.get(id)
+        return instance.delete()
     }
     delete() {
         let sql = this.qUpdate + ' is_deleted = $is_deleted '
         sql += ' WHERE id = $id'
 
-        let params = {id: this.id, is_deleted: Date().toString()}
+        let params = {id: this.id, is_deleted: new Date().toJSON()}
         let {changes, lastInsertRowid} = DB.run(sql, params)
+        
         // return returnId ? lastInsertRowid : this.find(lastInsertRowid)
-        return this.find(this.id) //or can I just return this
+        return this._.get(this.id) //or can I just return this
     }
     //TODO: make this a permanant deletion from DB
     erase() {
@@ -202,14 +212,14 @@ class Model extends BaseModel {
     }
 
     static restore(id) {
-        let instance = new this(this.id(id))
-        return instance.restore(...arguments)
+        let instance = new this
+        return instance.restore(id)
     }
-    restore() {
+    restore(id) {
         let sql = this.qUpdate + ' is_deleted = $is_deleted WHERE id = $id'
-        let params = {id: this.id, is_deleted: null}
+        let params = {id: id, is_deleted: null}
         DB.run(sql, params)
-        return this
+        return this._._get(id) //or can I just return this
     }
     with(attrs) {
         //Handle Strings
